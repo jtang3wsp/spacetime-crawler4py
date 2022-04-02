@@ -1,10 +1,11 @@
 from threading import Thread
-
 from inspect import getsource
 from utils.download import download
 from utils import get_logger
 import scraper
 import time
+import counters
+import os.path
 
 
 class Worker(Thread):
@@ -17,12 +18,20 @@ class Worker(Thread):
         super().__init__(daemon=True)
         
     def run(self):
-        while True:
+        if os.path.exists('crawlstats.pk'):
+            counters.load_stats('crawlstats.pk')
+            print("Stats loaded successfully")
+        else:
+            print("Stats file does not exist")
+            
+        while (True):
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
+            print(f'*****{counters.total_urls} URLS LEFT*****')
             resp = download(tbd_url, self.config, self.logger)
+
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
@@ -30,4 +39,8 @@ class Worker(Thread):
             for scraped_url in scraped_urls:
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
+            counters.save_stats('crawlstats.pk')
             time.sleep(self.config.time_delay)
+
+        counters.print_subdomains()
+        counters.print_top_fifty_words()
