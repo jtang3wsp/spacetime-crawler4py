@@ -6,6 +6,7 @@ from queue import Queue, Empty
 
 from utils import get_logger, get_urlhash, normalize
 from scraper import is_valid
+import counters
 
 class Frontier(object):
     def __init__(self, config, restart):
@@ -60,6 +61,7 @@ class Frontier(object):
             self.save[urlhash] = (url, False)
             self.save.sync()
             self.to_be_downloaded.append(url)
+            counters.total_urls += 1
     
     def mark_url_complete(self, url):
         urlhash = get_urlhash(url)
@@ -70,3 +72,4 @@ class Frontier(object):
 
         self.save[urlhash] = (url, True)
         self.save.sync()
+        counters.total_urls -= 1
